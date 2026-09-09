@@ -1,0 +1,106 @@
+{
+  "author": {
+    "email": "tony.quetano@planttheidea.com",
+    "name": "Tony Quetano",
+    "url": "https://www.planttheidea.com/"
+  },
+  "bugs": {
+    "url": "https://github.com/planttheidea/nx-monorepo-tools/issues"
+  },
+  "description": "Nx plugins that inject formatting, dependency, and bundling-boundary targets into every package of a monorepo",
+  "devDependencies": {
+    "@nx/devkit": "^23.1.3",
+    "@planttheidea/build-tools": "^2.0.8",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^9.39.5",
+    "knip": "^6.34.0",
+    "nx": "^23.1.3",
+    "prettier": "^3.9.6",
+    "release-it": "^21.0.2",
+    "rollup": "^4.63.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/es/index.d.mts",
+        "default": "./dist/es/index.mjs"
+      }
+    },
+    "./biome": {
+      "default": "./dist/es/biome/index.mjs"
+    },
+    "./externals": {
+      "default": "./dist/es/externals/index.mjs"
+    },
+    "./knip": {
+      "default": "./dist/es/knip/index.mjs"
+    },
+    "./knip/config": {
+      "default": "./dist/es/knip/config.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "index.d.ts",
+    "package.json"
+  ],
+  "homepage": "https://github.com/planttheidea/nx-monorepo-tools#readme",
+  "keywords": [
+    "nx",
+    "nx-plugin",
+    "monorepo",
+    "biome",
+    "knip",
+    "esbuild",
+    "externals"
+  ],
+  "license": "MIT",
+  "main": "./dist/es/index.mjs",
+  "module": "./dist/es/index.mjs",
+  "name": "@planttheidea/nx-monorepo-tools",
+  "packageManager": "yarn@4.18.0",
+  "peerDependencies": {
+    "@nx/devkit": ">=21.0.0",
+    "knip": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "knip": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/planttheidea/nx-monorepo-tools.git"
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:dist",
+    "build:dist": "NODE_ENV=production rollup -c config/rollup.config.js",
+    "clean": "rm -rf dist",
+    "clean:es": "rm -rf dist/es",
+    "format": "prettier . --log-level=warn --write",
+    "format:check": "prettier . --log-level=warn --check",
+    "lint": "eslint --max-warnings=0",
+    "release:alpha": "release-it --config=config/release-it/alpha.json",
+    "release:beta": "release-it --config=config/release-it/beta.json",
+    "release:rc": "release-it --config=config/release-it/rc.json",
+    "release:scripts": "npm run format:check && npm run typecheck && npm run lint && npm run test && npm run build",
+    "release:stable": "release-it --config=config/release-it/stable.json",
+    "test": "vitest run --config=config/vitest.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "./index.d.ts",
+  "version": "0.0.0"
+}
