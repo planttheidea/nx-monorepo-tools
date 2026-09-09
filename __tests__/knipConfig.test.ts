@@ -48,6 +48,25 @@ describe('deriveConfig', () => {
   test('keeps the base entry when the project overrides something else', () => {
     expect(deriveConfig({ ignoreDependencies: ['pino-pretty'] }).entry).toEqual(['src/**/*.ts', OVERRIDES_FILE_NAME]);
   });
+
+  test('accepts the bare string form of entry, which knip allows and a project may well write', () => {
+    expect(deriveConfig({ entry: 'src/index.ts' }).entry).toEqual(['src/index.ts', OVERRIDES_FILE_NAME]);
+  });
+
+  test('replaces a base list rather than appending to it, so a project can narrow what the base opened up', () => {
+    expect(deriveConfig({ ignore: ['coverage/**'] }).ignore).toEqual(['coverage/**']);
+  });
+
+  test('carries through a base key the project never mentions', () => {
+    expect(deriveConfig({}).treatConfigHintsAsErrors).toBe(true);
+  });
+
+  test('leaves the base untouched, so one project cannot leak its overrides into the next', () => {
+    deriveConfig({ entry: ['src/**/*.tsx'], ignoreDependencies: ['pino-pretty'] });
+
+    expect(baseConfig.entry).toEqual(['src/**/*.ts']);
+    expect(baseConfig).not.toHaveProperty('ignoreDependencies');
+  });
 });
 
 describe('createConfig', () => {
@@ -91,5 +110,42 @@ describe('createConfig', () => {
     createOverrides('.', "export default { ignoreDependencies: ['tsx'] };");
 
     await expect(createConfig()).resolves.toMatchObject({ ignoreDependencies: ['tsx'] });
+  });
+
+  test('returns the base for a directory that does not exist at all', async () => {
+    await expect(createConfig({ directory: 'libraries/absent' })).resolves.toEqual(baseConfig);
+  });
+
+  test('reads one project without picking up the file colocated with another', async () => {
+    createOverrides('libraries/first', "export default { ignoreDependencies: ['first-only'] };");
+    createOverrides('libraries/second', "export default { ignoreDependencies: ['second-only'] };");
+
+    await expect(createConfig({ directory: 'libraries/first' })).resolves.toMatchObject({
+      ignoreDependencies: ['first-only'],
+    });
+    await expect(createConfig({ directory: 'libraries/second' })).resolves.toMatchObject({
+      ignoreDependencies: ['second-only'],
+    });
+  });
+
+  /**
+   * An overrides file that does not parse has to surface as a failure. Falling
+   * back to the base would run knip against the wrong configuration and report
+   * a wall of unused dependencies, which reads as the project's problem rather
+   * than the file's.
+   */
+  test('fails rather than falling back to the base when the overrides file will not load', async () => {
+    createOverrides('libraries/broken', 'export default {');
+
+    await expect(createConfig({ directory: 'libraries/broken' })).rejects.toThrow();
+  });
+
+  test('falls back to the base for a file that exports nothing a configuration can be read from', async () => {
+    createOverrides('libraries/empty', 'export const unrelated = 1;');
+
+    await expect(createConfig({ directory: 'libraries/empty' })).resolves.toMatchObject({
+      entry: ['src/**/*.ts', OVERRIDES_FILE_NAME],
+      include: baseConfig.include,
+    });
   });
 });

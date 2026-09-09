@@ -45,4 +45,59 @@ describe('createPackageJsonNodes', () => {
 
     expect(results.at(0)?.at(1)).toHaveProperty('projects.libraries/consumer.targets.check-deep');
   });
+
+  test('derives each package separately when handed the whole workspace at once', async () => {
+    const results = await createNodes([
+      'applications/app/package.json',
+      'libraries/database/ribi/package.json',
+      'package.json',
+    ]);
+
+    expect(results).toEqual([
+      [
+        'applications/app/package.json',
+        { projects: { 'applications/app': { targets: { check: { command: 'check applications/app' } } } } },
+      ],
+      [
+        'libraries/database/ribi/package.json',
+        {
+          projects: {
+            'libraries/database/ribi': { targets: { check: { command: 'check libraries/database/ribi' } } },
+          },
+        },
+      ],
+      ['package.json', {}],
+    ]);
+  });
+
+  test('keeps the full nested path as the project root, not just the directory name', async () => {
+    const results = await createNodes(['libraries/database/ribi/package.json']);
+
+    expect(results.at(0)?.at(1)).toHaveProperty(['projects', 'libraries/database/ribi']);
+  });
+
+  test('registers whatever the derivation returns, without adding targets of its own', async () => {
+    const [, deriveNodes] = createPackageJsonNodes(() => ({
+      first: { command: 'first' },
+      second: { command: 'second' },
+    }));
+    const results = await deriveNodes(['libraries/consumer/package.json'], {}, CONTEXT);
+    const [, result] = results.at(0) ?? [];
+
+    expect(Object.keys((result as { projects: Record<string, { targets: object }> }).projects.consumer ?? {})).toEqual(
+      [],
+    );
+    expect(result).toEqual({
+      projects: {
+        'libraries/consumer': { targets: { first: { command: 'first' }, second: { command: 'second' } } },
+      },
+    });
+  });
+
+  test('registers nothing at all when the derivation returns no targets', async () => {
+    const [, deriveNodes] = createPackageJsonNodes(() => ({}));
+    const results = await deriveNodes(['libraries/consumer/package.json'], {}, CONTEXT);
+
+    expect(results.at(0)?.at(1)).toEqual({ projects: { 'libraries/consumer': { targets: {} } } });
+  });
 });

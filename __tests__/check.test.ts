@@ -178,6 +178,39 @@ describe('getInlinedDependencies', () => {
     expect(getInlinedDependencies(workspaceRoot, 'libraries/absent')).toEqual([]);
   });
 
+  /**
+   * A `project.json` that does not parse reads the same as one that is absent.
+   * Nx fails on it long before this check runs, so treating it as uncovered
+   * beats a second, worse error about the same file.
+   */
+  test('reports nothing for a project whose project.json does not parse', () => {
+    createProject({
+      root: 'libraries/malformed',
+      dependencies: { 'ribi-database': 'workspace:*' },
+      executor: '@nx/esbuild:esbuild',
+    });
+    writeFileSync(join(workspaceRoot, 'libraries/malformed', 'project.json'), '{ not json');
+
+    expect(getInlinedDependencies(workspaceRoot, 'libraries/malformed')).toEqual([]);
+  });
+
+  test('reports nothing for a project declaring no build target at all', () => {
+    createProject({ root: 'libraries/untargeted', dependencies: { 'ribi-database': 'workspace:*' } });
+    writeFileSync(join(workspaceRoot, 'libraries/untargeted', 'project.json'), JSON.stringify({ targets: {} }));
+
+    expect(getInlinedDependencies(workspaceRoot, 'libraries/untargeted')).toEqual([]);
+  });
+
+  test('reports the workspace dependency when an esbuild target carries no options at all', () => {
+    createProject({ root: 'libraries/bare', dependencies: { 'ribi-database': 'workspace:*' } });
+    writeFileSync(
+      join(workspaceRoot, 'libraries/bare', 'project.json'),
+      JSON.stringify({ targets: { build: { executor: '@nx/esbuild:esbuild' } } }),
+    );
+
+    expect(getInlinedDependencies(workspaceRoot, 'libraries/bare')).toEqual(['ribi-database']);
+  });
+
   test('reports every workspace dependency when the esbuild target declares no external at all', () => {
     createProject({
       root: 'libraries/consumer',
@@ -269,6 +302,28 @@ describe('getProjectRoots', () => {
 
     expect(getProjectRoots(workspaceRoot)).toEqual([]);
   });
+
+  test('returns nothing when there is no root manifest to read', () => {
+    expect(getProjectRoots(workspaceRoot)).toEqual([]);
+  });
+
+  /**
+   * Same reasoning as the unsupported pattern above: a glob whose parent is not
+   * there takes every package under it out of the check, and a sweep that
+   * quietly covers nothing is worse than one that stops.
+   */
+  test('throws on a pattern whose parent directory does not exist', () => {
+    createWorkspaceManifest(['tools/*']);
+
+    expect(() => getProjectRoots(workspaceRoot)).toThrow(/tools/);
+  });
+
+  test('returns nothing for a parent directory holding no packages', () => {
+    createWorkspaceManifest(['libraries/*']);
+    mkdirSync(join(workspaceRoot, 'libraries'), { recursive: true });
+
+    expect(getProjectRoots(workspaceRoot)).toEqual([]);
+  });
 });
 
 /**
@@ -341,5 +396,4 @@ describe('check', () => {
 
     expect(runCheck().status).toBe(0);
   });
-
 });
