@@ -1386,8 +1386,11 @@ __metadata:
   peerDependencies:
     "@nx/devkit": ">=21.0.0"
     knip: ">=6.0.0"
+    vite: ">=6.0.0"
   peerDependenciesMeta:
     knip:
+      optional: true
+    vite:
       optional: true
   languageName: unknown
   linkType: soft
