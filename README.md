@@ -11,8 +11,8 @@ yarn add --dev @planttheidea/nx-monorepo-tools
 {
   "plugins": [
     { "plugin": "@planttheidea/nx-monorepo-tools/biome" },
-    { "plugin": "@planttheidea/nx-monorepo-tools/knip" },
     { "plugin": "@planttheidea/nx-monorepo-tools/boundaries" },
+    { "plugin": "@planttheidea/nx-monorepo-tools/knip" },
   ],
 }
 ```
