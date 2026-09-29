@@ -7,18 +7,19 @@
   "bugs": {
     "url": "https://github.com/planttheidea/nx-monorepo-tools/issues"
   },
-  "description": "Nx plugins that inject formatting, dependency, and bundling-boundary targets into every package of a monorepo",
+  "description": "Nx plugins that inject formatting, dependency, and workspace-boundary targets into every package of a monorepo",
   "devDependencies": {
-    "@nx/devkit": "^23.1.3",
+    "@nx/devkit": "^23.2.1",
     "@planttheidea/build-tools": "^2.0.8",
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.39.5",
-    "knip": "^6.34.0",
-    "nx": "^23.1.3",
-    "prettier": "^3.9.6",
-    "release-it": "^21.0.2",
-    "rollup": "^4.63.1",
+    "knip": "^6.38.0",
+    "nx": "^23.2.1",
+    "prettier": "^3.9.9",
+    "release-it": "^21.1.0",
+    "rollup": "^4.63.5",
     "typescript": "^6.0.3",
+    "vite": "^8.3.1",
     "vitest": "^4.1.11"
   },
   "engines": {
@@ -35,14 +36,14 @@
     "./biome": {
       "default": "./dist/es/biome/index.mjs"
     },
-    "./externals": {
-      "default": "./dist/es/externals/index.mjs"
-    },
     "./knip": {
       "default": "./dist/es/knip/index.mjs"
     },
     "./knip/config": {
       "default": "./dist/es/knip/config.mjs"
+    },
+    "./boundaries": {
+      "default": "./dist/es/boundaries/index.mjs"
     }
   },
   "files": [
@@ -60,7 +61,8 @@
     "biome",
     "knip",
     "esbuild",
-    "externals"
+    "vite",
+    "boundaries"
   ],
   "license": "MIT",
   "main": "./dist/es/index.mjs",
@@ -69,10 +71,14 @@
   "packageManager": "yarn@4.18.0",
   "peerDependencies": {
     "@nx/devkit": ">=21.0.0",
-    "knip": ">=6.0.0"
+    "knip": ">=6.0.0",
+    "vite": ">=6.0.0"
   },
   "peerDependenciesMeta": {
     "knip": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     }
   },

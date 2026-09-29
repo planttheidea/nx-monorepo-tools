@@ -11,7 +11,7 @@ const CHECK_FILE_PATH = resolve(import.meta.dirname, 'check.mjs');
 export interface Options {}
 
 export const createNodesV2 = createPackageJsonNodes<Options>(() => ({
-  externals: {
+  boundaries: {
     cache: true,
     command: `node ${CHECK_FILE_PATH} {projectRoot}`,
     inputs: ['default', '^default'],

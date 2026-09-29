@@ -12,13 +12,13 @@ import tsc from 'typescript';
  * `createRollupConfig`, whose single entry point drives `main` and `module`.
  *
  * Output mirrors `src` so that a module resolving a sibling by path — the
- * externals plugin finding `check`, the knip plugin finding its config — reads
+ * boundaries plugin finding its `check`, the knip plugin finding its config — reads
  * the same relative path in both trees.
  */
 const PLUGIN_ENTRIES = [
   { input: 'src/biome/index.ts', output: 'dist/es/biome/index.mjs' },
-  { input: 'src/externals/index.ts', output: 'dist/es/externals/index.mjs' },
-  { input: 'src/externals/check.ts', output: 'dist/es/externals/check.mjs' },
+  { input: 'src/boundaries/index.ts', output: 'dist/es/boundaries/index.mjs' },
+  { input: 'src/boundaries/check.ts', output: 'dist/es/boundaries/check.mjs' },
   { input: 'src/knip/index.ts', output: 'dist/es/knip/index.mjs' },
   { input: 'src/knip/config.ts', output: 'dist/es/knip/config.mjs' },
 ];
