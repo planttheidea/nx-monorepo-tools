@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PackageManifest } from '../internal/workspace.js';
-import { getPackageManifest, getProjectRoots, getWorkspaceDependencies } from '../internal/workspace.js';
+import { getPackageManifest, getWorkspaceDependencies } from '../internal/workspace.js';
 
 const VITE_CONFIG_FILE_NAMES = [
   'vite.config.ts',
@@ -239,9 +239,12 @@ async function getVite(): Promise<ViteModule> {
   try {
     return await import('vite');
   } catch (error) {
-    throw new Error('The sources check found a Vite config but could not load `vite`. Install it in the workspace.', {
-      cause: error,
-    });
+    throw new Error(
+      'The boundaries check found a Vite config but could not load `vite`. Install it in the workspace.',
+      {
+        cause: error,
+      },
+    );
   }
 }
 
@@ -296,27 +299,12 @@ export async function getProjectBuildOutputImports(
   return getBuildOutputImports(getResolveEnvironments(config, vite), dependencies);
 }
 
-/** Workspace package names mapped to their roots, so a dependency's manifest can be found by name. */
-export function getProjectRootsByName(workspaceRoot: string, projectRoots: string[]): Map<string, string> {
-  const roots = new Map<string, string>();
-
-  for (const projectRoot of projectRoots) {
-    const name = getPackageManifest(join(workspaceRoot, projectRoot, 'package.json'))?.name;
-
-    if (name) {
-      roots.set(name, projectRoot);
-    }
-  }
-
-  return roots;
-}
-
 /**
  * Names each offending import and the fix that applies to it: add a condition
  * the library already answers to, or give the library a source entry if it has
  * none.
  */
-export function getReport(projectRoot: string, imports: BuildOutputImport[]): string {
+export function getSourcesReport(projectRoot: string, imports: BuildOutputImport[]): string {
   const lines = [
     `${projectRoot} resolves workspace libraries to their build output instead of their source:`,
     '',
@@ -360,46 +348,13 @@ export function getReport(projectRoot: string, imports: BuildOutputImport[]): st
   return lines.join('\n');
 }
 
-export async function isCompliant(
+/** The sources rule: a report when the project's Vite config resolves a workspace library to build output. */
+export async function checkSources(
   workspaceRoot: string,
   projectRoot: string,
   projectRootsByName: Map<string, string>,
-): Promise<boolean> {
+): Promise<string | undefined> {
   const imports = await getProjectBuildOutputImports(workspaceRoot, projectRoot, projectRootsByName);
 
-  if (imports.length === 0) {
-    return true;
-  }
-
-  console.error(getReport(projectRoot, imports));
-
-  return false;
-}
-
-/**
- * The executable shell, as in the externals check: an optional project root,
- * the workspace from the working directory, and the exit code Nx reads. With no
- * root, it sweeps every package.
- *
- * Guarded on `import.meta.main` so the tests can import the rules above without
- * this reading their argv and exiting.
- */
-if (import.meta.main) {
-  const workspaceRoot = process.cwd();
-  const [requestedRoot] = process.argv.slice(2);
-  const projectRoots = getProjectRoots(workspaceRoot);
-  const projectRootsByName = getProjectRootsByName(workspaceRoot, projectRoots);
-  const roots = requestedRoot ? [requestedRoot] : projectRoots;
-
-  let compliant = true;
-
-  // One at a time: each config is bundled to evaluate it, and interleaving
-  // those would gain little over a sweep that is cached per project anyway.
-  for (const root of roots) {
-    compliant = (await isCompliant(workspaceRoot, root, projectRootsByName)) && compliant;
-  }
-
-  if (!compliant) {
-    process.exit(1);
-  }
+  return imports.length === 0 ? undefined : getSourcesReport(projectRoot, imports);
 }

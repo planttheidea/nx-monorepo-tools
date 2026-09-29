@@ -2,9 +2,8 @@ import { basename, dirname, resolve } from 'node:path';
 import type { CreateNodes, CreateNodesContext, TargetConfiguration } from '@nx/devkit';
 import { describe, expect, test } from 'vitest';
 import { createNodesV2 as biome } from '../src/biome/index.js';
-import { createNodesV2 as externals } from '../src/externals/index.js';
+import { createNodesV2 as boundaries } from '../src/boundaries/index.js';
 import { createNodesV2 as knip } from '../src/knip/index.js';
-import { createNodesV2 as sources } from '../src/sources/index.js';
 
 interface DerivedProjects {
   projects?: Record<string, { targets: Record<string, TargetConfiguration> }>;
@@ -16,9 +15,8 @@ const SOURCE_ROOT = resolve(import.meta.dirname, '..', 'src');
 
 const PLUGINS = [
   { name: 'biome', createNodesV2: biome },
-  { name: 'externals', createNodesV2: externals },
+  { name: 'boundaries', createNodesV2: boundaries },
   { name: 'knip', createNodesV2: knip },
-  { name: 'sources', createNodesV2: sources },
 ] as const;
 
 async function getTargets(createNodesV2: CreateNodes<object>): Promise<Record<string, TargetConfiguration>> {
@@ -108,9 +106,9 @@ describe('biome', () => {
   });
 });
 
-describe('externals', () => {
-  test('injects a single externals target', async () => {
-    expect(Object.keys(await getTargets(externals))).toEqual(['externals']);
+describe('boundaries', () => {
+  test('injects a single boundaries target', async () => {
+    expect(Object.keys(await getTargets(boundaries))).toEqual(['boundaries']);
   });
 
   /**
@@ -119,38 +117,16 @@ describe('externals', () => {
    * it, so the relationship is asserted rather than the literal path.
    */
   test('runs the check that sits beside it, by absolute path', async () => {
-    const command = await getCommand(externals, 'externals');
+    const command = await getCommand(boundaries, 'boundaries');
     const checkPath = getArgument(command, 1);
 
     expect(command).toMatch(/^node /);
     expect(basename(checkPath)).toBe('check.mjs');
-    expect(dirname(checkPath)).toBe(resolve(SOURCE_ROOT, 'externals'));
+    expect(dirname(checkPath)).toBe(resolve(SOURCE_ROOT, 'boundaries'));
   });
 
   test('passes the project as the only argument, leaving the workspace to the working directory', async () => {
-    const command = await getCommand(externals, 'externals');
-
-    expect(getArgument(command, 2)).toBe('{projectRoot}');
-    expect(command.split(' ')).toHaveLength(3);
-  });
-});
-
-describe('sources', () => {
-  test('injects a single sources target', async () => {
-    expect(Object.keys(await getTargets(sources))).toEqual(['sources']);
-  });
-
-  test('runs the check that sits beside it, by absolute path', async () => {
-    const command = await getCommand(sources, 'sources');
-    const checkPath = getArgument(command, 1);
-
-    expect(command).toMatch(/^node /);
-    expect(basename(checkPath)).toBe('check.mjs');
-    expect(dirname(checkPath)).toBe(resolve(SOURCE_ROOT, 'sources'));
-  });
-
-  test('passes the project as the only argument, leaving the workspace to the working directory', async () => {
-    const command = await getCommand(sources, 'sources');
+    const command = await getCommand(boundaries, 'boundaries');
 
     expect(getArgument(command, 2)).toBe('{projectRoot}');
     expect(command.split(' ')).toHaveLength(3);

@@ -2,21 +2,16 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import {
-  getInlinedDependencies,
-  getProjectRoots,
-  getWorkspaceDependencies,
-  isCompliant,
-  isExternal,
-} from '../src/externals/check.js';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { checkExternals, getInlinedDependencies, isExternal } from '../src/boundaries/externals.js';
+import { getProjectRoots, getWorkspaceDependencies } from '../src/internal/workspace.js';
 
 /**
  * The built file, which `npm test` produces first. The source cannot run in
  * place: Node strips its types but will not map a `.js` import specifier to the
  * `.ts` file beside it, and this is the file Nx actually runs.
  */
-const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'dist', 'es', 'externals', 'check.mjs');
+const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'dist', 'es', 'boundaries', 'check.mjs');
 
 interface ProjectFixture {
   root: string;
@@ -227,29 +222,21 @@ describe('getInlinedDependencies', () => {
   });
 });
 
-describe('isCompliant', () => {
-  test('fails a violating project and names the project and the dependency', () => {
-    const reported = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-
+describe('checkExternals', () => {
+  test('reports a violating project, naming the project and the dependency', () => {
     createProject({
       root: 'libraries/consumer',
       dependencies: { 'ribi-database': 'workspace:*' },
       executor: '@nx/esbuild:esbuild',
     });
 
-    expect(isCompliant(workspaceRoot, 'libraries/consumer')).toBe(false);
+    const report = checkExternals(workspaceRoot, 'libraries/consumer');
 
-    const message = reported.mock.calls.at(0)?.at(0) as string;
-
-    expect(message).toContain('libraries/consumer');
-    expect(message).toContain('"ribi-database"');
-
-    reported.mockRestore();
+    expect(report).toContain('libraries/consumer');
+    expect(report).toContain('"external": ["ribi-database"]');
   });
 
-  test('passes a compliant project without reporting anything', () => {
-    const reported = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-
+  test('reports nothing for a compliant project', () => {
     createProject({
       root: 'libraries/consumer',
       dependencies: { 'ribi-database': 'workspace:*' },
@@ -257,10 +244,7 @@ describe('isCompliant', () => {
       external: ['ribi-database'],
     });
 
-    expect(isCompliant(workspaceRoot, 'libraries/consumer')).toBe(true);
-    expect(reported).not.toHaveBeenCalled();
-
-    reported.mockRestore();
+    expect(checkExternals(workspaceRoot, 'libraries/consumer')).toBeUndefined();
   });
 });
 
@@ -334,11 +318,11 @@ describe('getProjectRoots', () => {
 /**
  * The shell around the logic: argument handling and the exit code Nx reads.
  *
- * The file under test is the one that ships, built and run by `node`. It reads the workspace from the working directory, the way
- * Nx runs it, so the fixture is handed over as `cwd` and needs no particular
+ * The file under test is the one that ships, built and run by `node`. It
+ * reads the workspace from the working directory, the way Nx runs it, so the fixture is handed over as `cwd` and needs no particular
  * layout of its own.
  */
-describe('check', () => {
+describe('boundaries check, externals rule', () => {
   function runCheck(...args: string[]) {
     return spawnSync('node', [CHECK_FILE_PATH, ...args], { cwd: workspaceRoot, encoding: 'utf8' });
   }
@@ -364,7 +348,7 @@ describe('check', () => {
     const { status, stderr } = runCheck('libraries/consumer');
 
     expect(status).toBe(1);
-    expect(stderr).toContain('libraries/consumer');
+    expect(stderr).toContain('[externals] libraries/consumer');
     expect(stderr).toContain('"ribi-database"');
   });
 

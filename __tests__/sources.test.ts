@@ -7,16 +7,16 @@ import {
   getBuildOutputImports,
   getEffectiveConditions,
   getExportEntries,
-  getReport,
+  getSourcesReport,
   getResolveEnvironments,
   getSourceConditions,
   getViteConfigFile,
   isBuildOutput,
   resolveExportTarget,
-} from '../src/sources/check.js';
+} from '../src/boundaries/sources.js';
 
 /** The built file, for the same reason as the externals check: it is what Nx runs. */
-const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'dist', 'es', 'sources', 'check.mjs');
+const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'dist', 'es', 'boundaries', 'check.mjs');
 
 const VITE = {
   defaultClientConditions: ['module', 'browser', 'development|production'],
@@ -216,9 +216,9 @@ describe('getBuildOutputImports', () => {
   });
 });
 
-describe('getReport', () => {
+describe('getSourcesReport', () => {
   test('suggests the condition the library already answers to', () => {
-    const report = getReport('applications/app', [
+    const report = getSourcesReport('applications/app', [
       {
         environment: 'client',
         dependency: 'shared',
@@ -233,7 +233,7 @@ describe('getReport', () => {
   });
 
   test('suggests a source entry for a library that has none', () => {
-    const report = getReport('applications/app', [
+    const report = getSourcesReport('applications/app', [
       {
         environment: 'client',
         dependency: 'shared',
@@ -253,7 +253,7 @@ describe('getReport', () => {
  * The shell around the logic, run the way Nx runs it: the built file, the
  * workspace as the working directory, and a real Vite config for it to load.
  */
-describe('check', () => {
+describe('boundaries check, sources rule', () => {
   let workspaceRoot: string;
 
   function setFile(relativePath: string, content: string): void {
@@ -309,6 +309,7 @@ describe('check', () => {
     const { status, stderr } = runCheck('applications/app');
 
     expect(status).toBe(1);
+    expect(stderr).toContain('[sources] applications/app');
     expect(stderr).toContain('[client] shared → ./dist/index.js');
     expect(stderr).toContain('[ssr] shared → ./dist/index.js');
     expect(stderr).toContain("'source'");
@@ -353,6 +354,20 @@ describe('check', () => {
 
     expect(status).toBe(1);
     expect(stderr).toContain('Give "shared" a source entry');
+  });
+
+  test('reports every rule a project breaks, each under its own label', () => {
+    createWorkspace('export default {};');
+    setFile(
+      'applications/app/project.json',
+      JSON.stringify({ targets: { build: { executor: '@nx/esbuild:esbuild', options: { external: [] } } } }),
+    );
+
+    const { status, stderr } = runCheck('applications/app');
+
+    expect(status).toBe(1);
+    expect(stderr).toContain('[externals] applications/app');
+    expect(stderr).toContain('[sources] applications/app');
   });
 
   test('sweeps every workspace package when given no project', () => {

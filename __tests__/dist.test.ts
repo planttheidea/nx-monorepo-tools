@@ -12,7 +12,7 @@ interface DerivedProjects {
 
 const CONTEXT = { nxJsonConfiguration: {}, workspaceRoot: '/workspace' } as CreateNodesContext;
 const PROJECT_ROOT = 'libraries/consumer';
-const PLUGIN_SUBPATHS = ['biome', 'knip', 'externals', 'sources'];
+const PLUGIN_SUBPATHS = ['biome', 'knip', 'boundaries'];
 
 /**
  * Everything here goes through the package's own name rather than a relative
@@ -150,12 +150,12 @@ describe('knip/config', () => {
  * same way is the only thing that proves the shipped artifact is executable at
  * all.
  */
-describe('externals check', () => {
+describe('boundaries check', () => {
   let workspaceRoot: string;
 
   async function getCheckPath(): Promise<string> {
-    const { createNodesV2 } = await importSubpath('externals');
-    const { command } = (await getTargets(createNodesV2 as CreateNodes<object>)).externals ?? {};
+    const { createNodesV2 } = await importSubpath('boundaries');
+    const { command } = (await getTargets(createNodesV2 as CreateNodes<object>)).boundaries ?? {};
 
     return (command ?? '').split(' ').at(1) ?? '';
   }
@@ -170,7 +170,7 @@ describe('externals check', () => {
   }
 
   beforeEach(() => {
-    workspaceRoot = mkdtempSync(join(tmpdir(), 'dist-externals-'));
+    workspaceRoot = mkdtempSync(join(tmpdir(), 'dist-boundaries-'));
   });
 
   afterEach(() => {
@@ -182,7 +182,7 @@ describe('externals check', () => {
 
     expect(existsSync(checkPath)).toBe(true);
     expect(dirname(checkPath)).toBe(
-      dirname(fileURLToPath(import.meta.resolve('@planttheidea/nx-monorepo-tools/externals'))),
+      dirname(fileURLToPath(import.meta.resolve('@planttheidea/nx-monorepo-tools/boundaries'))),
     );
   });
 

@@ -74,3 +74,18 @@ export function getProjectRoots(workspaceRoot: string): string[] {
 
   return projectRoots;
 }
+
+/** Workspace package names mapped to their roots, so a dependency's manifest can be found by name. */
+export function getProjectRootsByName(workspaceRoot: string, projectRoots: string[]): Map<string, string> {
+  const roots = new Map<string, string>();
+
+  for (const projectRoot of projectRoots) {
+    const name = getPackageManifest(join(workspaceRoot, projectRoot, 'package.json'))?.name;
+
+    if (name) {
+      roots.set(name, projectRoot);
+    }
+  }
+
+  return roots;
+}
