@@ -1,6 +1,6 @@
 # `@planttheidea/nx-monorepo-tools`
 
-Three Nx plugins that treat every package in a monorepo as a project and give each one the same targets. Each is
+Four Nx plugins that treat every package in a monorepo as a project and give each one the same targets. Each is
 registered separately in `nx.json`, so a workspace takes only the ones it wants.
 
 ```sh
@@ -13,6 +13,7 @@ yarn add --dev @planttheidea/nx-monorepo-tools
     { "plugin": "@planttheidea/nx-monorepo-tools/biome" },
     { "plugin": "@planttheidea/nx-monorepo-tools/knip" },
     { "plugin": "@planttheidea/nx-monorepo-tools/externals" },
+    { "plugin": "@planttheidea/nx-monorepo-tools/sources" },
   ],
 }
 ```
@@ -110,6 +111,55 @@ one copy and has nothing to declare; any other bundler is unknown to this check 
 
 Project roots are expanded from the root manifest's `workspaces` globs, and only the `dir/*` form is supported. A deeper
 glob throws rather than silently matching nothing and taking every package under it out of the check.
+
+## `sources`
+
+Injects a cached `sources` target into every package, failing any Vite consumer that resolves a workspace library to its
+build output instead of its source.
+
+A workspace library typically exposes its source under a custom export condition — any name, often the workspace's own —
+and its build under `import`:
+
+```json
+{ "exports": { ".": { "source": "./src/index.ts", "import": "./dist/index.js" } } }
+```
+
+Vite only takes the source entry if its `resolve.conditions` lists that condition. Without it, Vite falls back to
+`import` and reads the library's `dist` — whatever was last built. Locally that is a stale copy, so an edit to the
+library silently does not show up. On a clean checkout it does not exist at all, and the importing module fails to load.
+Nothing warns locally, because a leftover build makes it work — which is what makes it worth a check.
+
+The fix goes in the consumer's Vite config, for every environment that imports the library:
+
+```ts
+import { defaultClientConditions, defaultServerConditions, defineConfig } from 'vite';
+
+export default defineConfig({
+  resolve: { conditions: ['source', ...defaultClientConditions] },
+  ssr: { resolve: { conditions: ['source', ...defaultServerConditions] } },
+});
+```
+
+When a library has no source entry at all, the check says so instead, and the fix is an entry in that library's
+`exports`.
+
+### How it checks
+
+The check loads the consumer's `vite.config.*` as a production build and reads the conditions of the `client` and `ssr`
+environments — its own, or Vite's defaults — and of any other entry under `environments`. It then resolves every export
+of every `workspace:*` dependency the way Vite would, and fails on any that lands in `dist`, `build`, `lib`, or
+`out-tsc`.
+
+The config is loaded without running its plugins' hooks, because a hook can write files (TanStack Start generates its
+route tree there) and a cached check should not. A condition that only a plugin adds is therefore invisible to it.
+
+### Scope
+
+Only packages with a `vite.config.*` are checked. A package that uses Vite only through Vitest is left out: its tests
+run through Nx, where a `test` target depending on `^build` keeps every dependency's build fresh. Storybook and the dev
+server run outside the task graph, which is where a missing or stale build goes unnoticed.
+
+Requires `vite` in the workspace.
 
 ## `createPackageJsonNodes`
 

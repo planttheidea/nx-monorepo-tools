@@ -5,6 +5,7 @@ import { describe, expect, test } from 'vitest';
 import rollupConfig from '../config/rollup.config.js';
 import { createNodesV2 as externals } from '../src/externals/index.js';
 import { createNodesV2 as knip } from '../src/knip/index.js';
+import { createNodesV2 as sources } from '../src/sources/index.js';
 
 type ExportEntry = string | { default?: string; import?: { default?: string } };
 
@@ -25,7 +26,7 @@ interface DerivedProjects {
 
 const CONTEXT = { nxJsonConfiguration: {}, workspaceRoot: '/workspace' } as CreateNodesContext;
 const PROJECT_ROOT = 'libraries/consumer';
-const PLUGIN_SUBPATHS = ['./biome', './knip', './externals'];
+const PLUGIN_SUBPATHS = ['./biome', './knip', './externals', './sources'];
 const REPOSITORY_ROOT = resolve(import.meta.dirname, '..');
 
 const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as PackageManifest;
@@ -93,8 +94,8 @@ describe('build outputs', () => {
 });
 
 /**
- * Two plugins reach a second file of their own by resolving a sibling: the
- * externals plugin spawns its check, and the knip plugin hands its
+ * Three plugins reach a second file of their own by resolving a sibling: the
+ * externals and sources plugins spawn their checks, and the knip plugin hands its
  * configuration module to the knip CLI. Both paths are strings the compiler
  * never sees, naming a `.mjs` that exists only once rollup writes it, so the
  * source path is translated into the built one and looked up.
@@ -115,6 +116,7 @@ describe('sibling files the plugins resolve', () => {
   test.each([
     { name: 'externals', createNodesV2: externals },
     { name: 'knip', createNodesV2: knip },
+    { name: 'sources', createNodesV2: sources },
   ])('$name resolves only siblings the build writes', async ({ createNodesV2 }) => {
     const siblings = await getResolvedSiblings(createNodesV2);
 

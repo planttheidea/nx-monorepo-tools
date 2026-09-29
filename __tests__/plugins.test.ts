@@ -4,6 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { createNodesV2 as biome } from '../src/biome/index.js';
 import { createNodesV2 as externals } from '../src/externals/index.js';
 import { createNodesV2 as knip } from '../src/knip/index.js';
+import { createNodesV2 as sources } from '../src/sources/index.js';
 
 interface DerivedProjects {
   projects?: Record<string, { targets: Record<string, TargetConfiguration> }>;
@@ -17,6 +18,7 @@ const PLUGINS = [
   { name: 'biome', createNodesV2: biome },
   { name: 'externals', createNodesV2: externals },
   { name: 'knip', createNodesV2: knip },
+  { name: 'sources', createNodesV2: sources },
 ] as const;
 
 async function getTargets(createNodesV2: CreateNodes<object>): Promise<Record<string, TargetConfiguration>> {
@@ -127,6 +129,28 @@ describe('externals', () => {
 
   test('passes the project as the only argument, leaving the workspace to the working directory', async () => {
     const command = await getCommand(externals, 'externals');
+
+    expect(getArgument(command, 2)).toBe('{projectRoot}');
+    expect(command.split(' ')).toHaveLength(3);
+  });
+});
+
+describe('sources', () => {
+  test('injects a single sources target', async () => {
+    expect(Object.keys(await getTargets(sources))).toEqual(['sources']);
+  });
+
+  test('runs the check that sits beside it, by absolute path', async () => {
+    const command = await getCommand(sources, 'sources');
+    const checkPath = getArgument(command, 1);
+
+    expect(command).toMatch(/^node /);
+    expect(basename(checkPath)).toBe('check.mjs');
+    expect(dirname(checkPath)).toBe(resolve(SOURCE_ROOT, 'sources'));
+  });
+
+  test('passes the project as the only argument, leaving the workspace to the working directory', async () => {
+    const command = await getCommand(sources, 'sources');
 
     expect(getArgument(command, 2)).toBe('{projectRoot}');
     expect(command.split(' ')).toHaveLength(3);

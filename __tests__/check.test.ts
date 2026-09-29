@@ -11,7 +11,12 @@ import {
   isExternal,
 } from '../src/externals/check.js';
 
-const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'src', 'externals', 'check.ts');
+/**
+ * The built file, which `npm test` produces first. The source cannot run in
+ * place: Node strips its types but will not map a `.js` import specifier to the
+ * `.ts` file beside it, and this is the file Nx actually runs.
+ */
+const CHECK_FILE_PATH = join(import.meta.dirname, '..', 'dist', 'es', 'externals', 'check.mjs');
 
 interface ProjectFixture {
   root: string;
@@ -329,8 +334,7 @@ describe('getProjectRoots', () => {
 /**
  * The shell around the logic: argument handling and the exit code Nx reads.
  *
- * The file under test is the one that ships, run in place by `node`, which
- * strips its types. It reads the workspace from the working directory, the way
+ * The file under test is the one that ships, built and run by `node`. It reads the workspace from the working directory, the way
  * Nx runs it, so the fixture is handed over as `cwd` and needs no particular
  * layout of its own.
  */

@@ -12,7 +12,7 @@ interface DerivedProjects {
 
 const CONTEXT = { nxJsonConfiguration: {}, workspaceRoot: '/workspace' } as CreateNodesContext;
 const PROJECT_ROOT = 'libraries/consumer';
-const PLUGIN_SUBPATHS = ['biome', 'knip', 'externals'];
+const PLUGIN_SUBPATHS = ['biome', 'knip', 'externals', 'sources'];
 
 /**
  * Everything here goes through the package's own name rather than a relative

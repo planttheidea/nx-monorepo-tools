@@ -12,7 +12,7 @@ import tsc from 'typescript';
  * `createRollupConfig`, whose single entry point drives `main` and `module`.
  *
  * Output mirrors `src` so that a module resolving a sibling by path — the
- * externals plugin finding `check`, the knip plugin finding its config — reads
+ * externals and sources plugins finding their `check`, the knip plugin finding its config — reads
  * the same relative path in both trees.
  */
 const PLUGIN_ENTRIES = [
@@ -21,6 +21,8 @@ const PLUGIN_ENTRIES = [
   { input: 'src/externals/check.ts', output: 'dist/es/externals/check.mjs' },
   { input: 'src/knip/index.ts', output: 'dist/es/knip/index.mjs' },
   { input: 'src/knip/config.ts', output: 'dist/es/knip/config.mjs' },
+  { input: 'src/sources/index.ts', output: 'dist/es/sources/index.mjs' },
+  { input: 'src/sources/check.ts', output: 'dist/es/sources/check.mjs' },
 ];
 
 const [index, ...rest] = createRollupConfig({
